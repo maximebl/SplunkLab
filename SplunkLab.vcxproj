@@ -135,6 +135,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Apps\DXRTutorial.cpp" />
+    <ClCompile Include="Apps\QuickComputeShader.cpp" />
     <ClCompile Include="Apps\SimpleLighting.cpp" />
     <ClCompile Include="Basics.cpp" />
     <ClCompile Include="Gpu.cpp" />
@@ -142,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Apps\DXRTutorial.h" />
+    <ClInclude Include="Apps\QuickComputeShader.h" />
     <ClInclude Include="Apps\SimpleLighting.h" />
     <ClInclude Include="Headers\Basics.h" />
     <ClInclude Include="Headers\Gpu.h" />
