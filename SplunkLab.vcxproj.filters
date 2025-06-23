@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Basics.cpp" />
+    <ClCompile Include="Apps\DXRTutorial.cpp" />
+    <ClCompile Include="Gpu.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Apps\SimpleLighting.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Apps\SimpleLighting.h" />
+    <ClInclude Include="Apps\DXRTutorial.h" />
+    <ClInclude Include="Shaders\Shared.h" />
+    <ClInclude Include="Headers\Basics.h" />
+    <ClInclude Include="Headers\Gpu.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\PathTracer.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
