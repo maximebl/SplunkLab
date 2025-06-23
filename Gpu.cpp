@@ -199,19 +199,21 @@ namespace D3D
 
     void CreateShaderCompiler(ShaderCompiler* Compiler)
     {
-        // Check(Compiler->DllSupport.Initialize());
-        // Check(Compiler->DllSupport.CreateInstance(CLSID_DxcCompiler, &Compiler->Compiler));
-        // Check(Compiler->DllSupport.CreateInstance(CLSID_DxcUtils, &Compiler->Utils));
         Check(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&Compiler->Compiler)));
         Check(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&Compiler->Utils)));
     }
 
     void CompileShader(ShaderCompiler* Compiler, Shader* Program)
     {
+        std::wstring ShaderDirectory = GetSolutionDirectory() + L"Shaders\\";
+        wchar_t ExpandedShaderDirectory[1024] = {};
+        GetFullPathNameW(ShaderDirectory.c_str(), _countof(ExpandedShaderDirectory), ExpandedShaderDirectory, nullptr);
+        std::wstring ShaderFilePath = ShaderDirectory + Program->Filename;
+        
         // Read the file.
         UINT32 CodePage = 0;
         IDxcBlobEncoding* BlobEncoding;
-        Check(Compiler->Utils->LoadFile(Program->Filename, &CodePage, &BlobEncoding));
+        Check(Compiler->Utils->LoadFile(ShaderFilePath.c_str(), &CodePage, &BlobEncoding));
 
         DxcBuffer SourceBuffer;
         SourceBuffer.Ptr = BlobEncoding->GetBufferPointer();
@@ -222,9 +224,6 @@ namespace D3D
         SourceBuffer.Encoding = CodePage;
 
         // Arguments.
-        std::wstring ShaderDirectory = GetSolutionDirectory() + L"Shaders";
-        wchar_t ExpandedShaderDirectory[1024] = {};
-        GetFullPathNameW(ShaderDirectory.c_str(), _countof(ExpandedShaderDirectory), ExpandedShaderDirectory, nullptr);
 
         const wchar_t* Arguments[] = {
 #if _DEBUG
@@ -236,7 +235,7 @@ namespace D3D
             L"-T", Program->TargetProfile,
             L"-all_resources_bound",
             L"-WX",
-            L"-I", ExpandedShaderDirectory // Additional includes.
+            L"-I", ShaderDirectory.c_str() // Additional includes.
         };
 
         IDxcResult* CompilationResult;
