@@ -1,6 +1,7 @@
 ﻿// #include "cuda_runtime.h"
 #include "Headers/Gpu.h"
 #include "Apps/DXRTutorial.h"
+#include "Apps/QuickComputeShader.h"
 #include "Apps/SimpleLighting.h"
 
 using namespace DirectX;
@@ -80,7 +81,8 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         {
             None,
             NvidiaTutorial,
-            SimpleLighting
+            SimpleLighting,
+            QuickComputeShader
         };
         Demo CurrentDemo = Demo::NvidiaTutorial;
         
@@ -96,6 +98,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         GlobalResources Data;
         bool IsNvidiaTutorialInitialized = false;
         bool IsSimpleLightingDemoInitialized = false;
+        bool IsQuickComputeShaderInitialized = false;
 
         // TODO: Replace with instancing a compiler everytime we call CompileShader() like DxrPathTracer does to allow multithreading.
         ShaderCompiler Compiler;
@@ -157,6 +160,10 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             {
                 CurrentDemo = Demo::SimpleLighting;
             }
+            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'C')
+            {
+                CurrentDemo = Demo::QuickComputeShader;
+            }
             
             Frame* CurrentFrame = &Data.Frames[BackBufferIndex];
             // ComPtr<ID3D12GraphicsCommandList7> CmdList = CurrentFrame->GraphicsCmdList;
@@ -207,6 +214,14 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
                 }
                 SimpleLighting::UpdateAndRender(CmdList, Window.Width, Window.Height);
+                break;
+                
+            case Demo::QuickComputeShader:
+                if (!IsQuickComputeShaderInitialized)
+                {
+                    IsQuickComputeShaderInitialized = true; 
+                }
+                QuickComputeShader::UpdateAndRender(CmdList, Window.Width, Window.Height);
                 break;
                 
             case Demo::None:
