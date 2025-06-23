@@ -148,7 +148,7 @@
     <ClInclude Include="Shaders\Shared.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PathTracer.hlsl">
+    <FxCompile Include="Shaders\IntroDXR.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

@@ -224,16 +224,15 @@ namespace D3D
         SourceBuffer.Encoding = CodePage;
 
         // Arguments.
-
         const wchar_t* Arguments[] = {
 #if _DEBUG
-            L"-Zs",
+            L"-Zs", // Generate small PDB with just sources and compile options. Cannot be used together with -Zi.
             L"-Od",
 #else
            L"-O3",
 #endif
             L"-T", Program->TargetProfile,
-            L"-all_resources_bound",
+            L"-all_resources_bound", // Recommended by Nvidia to help the driver.
             L"-WX",
             L"-I", ShaderDirectory.c_str() // Additional includes.
         };

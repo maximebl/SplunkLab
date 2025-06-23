@@ -186,7 +186,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     Check(CurrentFrame->GraphicsCmdAlloc->Reset());
                     Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
             
-                    DXRData.RtShader.Filename = L"PathTracer.hlsl";
+                    DXRData.RtShader.Filename = L"IntroDXR.hlsl";
                     DXRData.RtShader.TargetProfile = L"lib_6_3";
                     DXRData.RtShader.Entry = L"";
                     D3D::CompileShader(&Compiler, &DXRData.RtShader);
