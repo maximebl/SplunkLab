@@ -140,6 +140,9 @@
     <ClCompile Include="Basics.cpp" />
     <ClCompile Include="Gpu.cpp" />
     <ClCompile Include="Main.cpp" />
+    <None Include="Shaders\QuickComputeShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Apps\DXRTutorial.h" />
@@ -150,10 +153,10 @@
     <ClInclude Include="Shaders\Shared.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\IntroDXR.hlsl">
+    <None Include="Shaders\IntroDXR.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

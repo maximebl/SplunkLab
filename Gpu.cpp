@@ -231,6 +231,7 @@ namespace D3D
 #else
            L"-O3",
 #endif
+            L"-E", Program->Entry,
             L"-T", Program->TargetProfile,
             L"-all_resources_bound", // Recommended by Nvidia to help the driver.
             L"-WX",

@@ -84,7 +84,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             SimpleLighting,
             QuickComputeShader
         };
-        Demo CurrentDemo = Demo::NvidiaTutorial;
+        Demo CurrentDemo = Demo::QuickComputeShader;
         
         WindowInfo Window;
         Window.WindowName = "RayLab";
@@ -149,7 +149,9 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         SetWindowLongPtr(Window.Hwnd, GWLP_USERDATA, (LONG_PTR)WndprocData);
         MSG WindowMessage = {nullptr};
 
-        DXRTutorial::TutorialData DXRData; // TODO: malloc and move pointer down the switch statement.
+        // TODO: malloc and move pointer down the switch statement.
+        DXRTutorial::TutorialData DXRData = {}; 
+        QuickComputeShader::QuickComputeShaderData QCSData = {};
         
         do {
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'N')
@@ -166,7 +168,6 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             }
             
             Frame* CurrentFrame = &Data.Frames[BackBufferIndex];
-            // ComPtr<ID3D12GraphicsCommandList7> CmdList = CurrentFrame->GraphicsCmdList;
             ID3D12GraphicsCommandList7* CmdList = CurrentFrame->GraphicsCmdList.Get();
             Check(CurrentFrame->GraphicsCmdAlloc->Reset());
             Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
@@ -178,53 +179,88 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             switch (CurrentDemo)
             {
             case Demo::NvidiaTutorial:
-                if (!IsNvidiaTutorialInitialized)
                 {
-                    DXRTutorial::InitializeAccelerationStructures(Device, CmdList, &DXRData);
-            
-                    // Execute and flush.
-                    CmdList->Close();
-                    UINT64 FenceValueToWaitFor = CurrentFrame->FenceValue++;
-                    Dx.GraphicsQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&CmdList);
-                    Check(Dx.GraphicsQueue->Signal(Dx.Fence.Get(), FenceValueToWaitFor));
-                    Check(Dx.Fence->SetEventOnCompletion(FenceValueToWaitFor, Dx.FenceEvent));
-                    WaitForSingleObject(Dx.FenceEvent, INFINITE);
-            
-                    Check(CurrentFrame->GraphicsCmdAlloc->Reset());
-                    Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
-            
-                    DXRData.RtShader.Filename = L"IntroDXR.hlsl";
-                    DXRData.RtShader.TargetProfile = L"lib_6_3";
-                    DXRData.RtShader.Entry = L"";
-                    D3D::CompileShader(&Compiler, &DXRData.RtShader);
-            
-                    DXRTutorial::InitializeShaderBindings(Device, &DXRData, Data.OutputTexture.Get());
-                    NAME_D3D12_OBJECT(DXRData.ShaderTable);
-            
-                    IsNvidiaTutorialInitialized = true;
+                    if (!IsNvidiaTutorialInitialized)
+                    {
+                        DXRTutorial::InitializeAccelerationStructures(Device, CmdList, &DXRData);
+                
+                        // Execute and flush.
+                        CmdList->Close();
+                        UINT64 FenceValueToWaitFor = CurrentFrame->FenceValue++;
+                        Dx.GraphicsQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)&CmdList);
+                        Check(Dx.GraphicsQueue->Signal(Dx.Fence.Get(), FenceValueToWaitFor));
+                        Check(Dx.Fence->SetEventOnCompletion(FenceValueToWaitFor, Dx.FenceEvent));
+                        WaitForSingleObject(Dx.FenceEvent, INFINITE);
+                
+                        Check(CurrentFrame->GraphicsCmdAlloc->Reset());
+                        Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
+                
+                        DXRData.RtShader.Filename = L"IntroDXR.hlsl";
+                        DXRData.RtShader.TargetProfile = L"lib_6_3";
+                        DXRData.RtShader.Entry = L"";
+                        D3D::CompileShader(&Compiler, &DXRData.RtShader);
+                
+                        DXRTutorial::InitializeShaderBindings(Device, &DXRData, Data.OutputTexture.Get());
+                        NAME_D3D12_OBJECT(DXRData.ShaderTable);
+                
+                        IsNvidiaTutorialInitialized = true;
+                    }
+                    DXRTutorial::UpdateAndRender(DXRData, CmdList, Window.Width, Window.Height);
                 }
-                DXRTutorial::UpdateAndRender(DXRData, CmdList, Window.Width, Window.Height);
                 break;
             
             case Demo::SimpleLighting:
-                if (!IsSimpleLightingDemoInitialized)
                 {
-                    // Load the scene.
-                    Scene LoadedScene;
-                    D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
+                    if (!IsSimpleLightingDemoInitialized)
+                    {
+                        // Load the scene.
+                        Scene LoadedScene;
+                        D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
+                    }
+                    SimpleLighting::UpdateAndRender(CmdList, Window.Width, Window.Height);
                 }
-                SimpleLighting::UpdateAndRender(CmdList, Window.Width, Window.Height);
                 break;
                 
             case Demo::QuickComputeShader:
-                if (!IsQuickComputeShaderInitialized)
                 {
-                    IsQuickComputeShaderInitialized = true; 
+                    if (!IsQuickComputeShaderInitialized)
+                    {
+                        // Create a compute shader.
+                        QCSData.QuickShader.Filename = L"QuickComputeShader.hlsl";
+                        QCSData.QuickShader.TargetProfile = L"cs_6_9";
+                        QCSData.QuickShader.Entry = L"Main";
+                        D3D::CompileShader(&Compiler, &QCSData.QuickShader);
+
+                        // Create the compute synchronization objects specific to this app.
+                        QCSData.FenceEvent = CreateEventEx(nullptr, "QCSData->FenceEvent", FALSE, EVENT_ALL_ACCESS);
+                        Check(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&QCSData.Fence)));
+                        NAME_D3D12_OBJECT(QCSData.Fence);
+
+                        IsQuickComputeShaderInitialized = true; 
+                    }
+
+                    // Wait before resetting.
+                    Check(QCSData.Fence->SetEventOnCompletion(QCSData.FenceValue, QCSData.FenceEvent));
+                    WaitForSingleObject(QCSData.FenceEvent, INFINITE);
+
+                    // Reset.
+                    ID3D12GraphicsCommandList7* CCmdList = CurrentFrame->ComputeCmdList.Get();
+                    Check(CurrentFrame->ComputeCmdAlloc->Reset());
+                    Check(CCmdList->Reset(CurrentFrame->ComputeCmdAlloc.Get(), nullptr));
+
+                    // Render.
+                    QuickComputeShader::UpdateAndRender(QCSData, CCmdList, Window.Width, Window.Height);
+                    
+                    Check(CCmdList->Close());
+                    Dx.ComputeQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)(&CCmdList));
+                    Dx.ComputeQueue->Signal(QCSData.Fence.Get(), QCSData.FenceValue + 1);
+                        
                 }
-                QuickComputeShader::UpdateAndRender(CmdList, Window.Width, Window.Height);
                 break;
                 
             case Demo::None:
+                {
+                }
                 break;
             }
             
