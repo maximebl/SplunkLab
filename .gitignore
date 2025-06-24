@@ -1,5 +1,6 @@
 .vs/
 .idea/
+*.sln.dotsettings.user
 x64/
 x86/
 External/NugetPackages
