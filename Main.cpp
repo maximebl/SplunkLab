@@ -106,7 +106,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
         D3D::CreateDevice(&Dx);
         NAME_D3D12_OBJECT(Dx.Device);
-        ID3D12Device10* Device = Dx.Device.Get();
+        ID3D12Device14* Device = Dx.Device.Get();
 
         D3D::CreateCommitted2DTexture(Device, Window.Width, Window.Height,
                                       D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
@@ -227,7 +227,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     {
                         // Create a compute shader.
                         QCSData.QuickShader.Filename = L"QuickComputeShader.hlsl";
-                        QCSData.QuickShader.TargetProfile = L"cs_6_9";
+                        QCSData.QuickShader.TargetProfile = L"cs_6_7";
                         QCSData.QuickShader.Entry = L"Main";
                         D3D::CompileShader(&Compiler, &QCSData.QuickShader);
 
@@ -235,6 +235,31 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         QCSData.FenceEvent = CreateEventEx(nullptr, "QCSData->FenceEvent", FALSE, EVENT_ALL_ACCESS);
                         Check(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&QCSData.Fence)));
                         NAME_D3D12_OBJECT(QCSData.Fence);
+
+                        // Bindings.
+                        D3D12_DESCRIPTOR_HEAP_DESC CSUHeapDesc = {};
+                        CSUHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+                        CSUHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+                        CSUHeapDesc.NumDescriptors = 1;
+                        Device->CreateDescriptorHeap(&CSUHeapDesc, IID_PPV_ARGS(&QCSData.CSUHeap));
+                        NAME_D3D12_OBJECT(QCSData.CSUHeap);
+
+                        D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+                        UAVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                        Device->CreateUnorderedAccessView(Data.OutputTexture.Get(), nullptr, &UAVDesc, QCSData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
+                        
+                        D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
+                        RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+                        D3D::CreateRootSignature(Device, &RootSigDesc, &QCSData.RootSig);
+                        NAME_D3D12_OBJECT(QCSData.RootSig);
+
+                        D3D12_COMPUTE_PIPELINE_STATE_DESC PSODesc = {};
+                        PSODesc.CS.pShaderBytecode = QCSData.QuickShader.Blob->GetBufferPointer();
+                        PSODesc.CS.BytecodeLength = QCSData.QuickShader.Blob->GetBufferSize();
+                        PSODesc.pRootSignature = QCSData.RootSig.Get();
+                        Check(Device->CreateComputePipelineState(&PSODesc, IID_PPV_ARGS(&QCSData.PSO)));
+                        NAME_D3D12_OBJECT(QCSData.PSO);
 
                         IsQuickComputeShaderInitialized = true; 
                     }

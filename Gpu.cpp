@@ -294,12 +294,9 @@ namespace D3D
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC VersionedRootsigDesc = {};
         VersionedRootsigDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
         VersionedRootsigDesc.Desc_1_1 = *Desc;
-        // Check(D3D12SerializeVersionedRootSignature(&VersionedRootsigDesc, &RootsigBlob, &ErrorBlob));
         HRESULT Hr = D3D12SerializeVersionedRootSignature(&VersionedRootsigDesc, &RootsigBlob, &ErrorBlob);
         if (FAILED(Hr))
         {
-            // const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
-
             const char* ErrorString = ErrorBlob ? (const char*)ErrorBlob->GetBufferPointer() : "";
             if (strlen(ErrorString))
             {

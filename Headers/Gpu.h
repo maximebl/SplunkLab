@@ -97,7 +97,7 @@ inline void SetNameIndexed(ComPtr<ID3D12Object> object, const wchar_t* name, UIN
 struct Global
 {
     // Devices.
-    ComPtr<ID3D12Device10> Device;
+    ComPtr<ID3D12Device14> Device;
     ComPtr<IDXGIFactory7> Factory;
     ComPtr<IDXGIAdapter4> Adapter;
     ComPtr<IDXGIOutput6> Output;
