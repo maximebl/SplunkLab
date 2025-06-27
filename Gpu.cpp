@@ -121,6 +121,21 @@ namespace D3D
         }
     }
 
+    void CreateDepthBuffers(ID3D12Device10* Device, Frame* Frames, WindowInfo* Window)
+    {
+        for (int i = 0; i < GlobalResources::NumBackBuffers; ++i)
+        {
+            CreateCommitted2DTexture(Device,
+                                     Window->Width, Window->Height,
+                                     D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+                                     D3D12_HEAP_TYPE_DEFAULT,
+                                     Frames[i].DepthBuffer.GetAddressOf(),
+                                     D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                     GlobalResources::DepthBufferFormat);
+            NAME_D3D12_OBJECT_INDEXED(Frames[i].DepthBuffer, i);
+        }
+    }
+
     void CreateFences(ID3D12Device10* Device, ID3D12Fence** Fence, HANDLE* FenceEvent, Frame* Frames)
     {
         Check(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(Fence)));
@@ -308,6 +323,32 @@ namespace D3D
         Check(Device->CreateRootSignature(0,
                                           RootsigBlob->GetBufferPointer(), RootsigBlob->GetBufferSize(),
                                           IID_PPV_ARGS(RootSignature)));
+    }
+
+    void CreateDSVDescriptorHeap(ID3D12Device10* Device, ID3D12DescriptorHeap** DSVHeap, UINT* DSVHeapHandleSize)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC Desc = {};
+        Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        Desc.NumDescriptors = GlobalResources::NumBackBuffers;
+        Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        Check(Device->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(DSVHeap)));
+        *DSVHeapHandleSize = Device->GetDescriptorHandleIncrementSize(Desc.Type);
+    }
+
+    void CreateDepthBufferDSV(ID3D12Device10* Device, Frame* Frames, ID3D12DescriptorHeap* DSVHeap, UINT DSVHeapHandleSize)
+    {
+       D3D12_CPU_DESCRIPTOR_HANDLE DSVHandle = DSVHeap->GetCPUDescriptorHandleForHeapStart();
+        for (int i = 0; i < GlobalResources::NumBackBuffers; i++)
+        {
+            Frame* CurrentFrame = &Frames[i];
+            D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc = {};
+            DSVDesc.Format = GlobalResources::DepthBufferFormat;
+            DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            
+            Device->CreateDepthStencilView(CurrentFrame->DepthBuffer.Get(), &DSVDesc, DSVHandle);
+            CurrentFrame->DSVHandle = DSVHandle;
+            DSVHandle.ptr += DSVHeapHandleSize;
+        }
     }
 
     void CreateRTVDescriptorHeap(ID3D12Device10* Device, ID3D12DescriptorHeap** RTVHeap, UINT* RTVHeapHandleSize)

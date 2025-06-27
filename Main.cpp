@@ -128,14 +128,14 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         Check(Device->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&Dx.CopyQueue)));
         NAME_D3D12_OBJECT(Dx.CopyQueue);
         
+        D3D::CreateFences(Device, Dx.Fence.GetAddressOf(), &Dx.FenceEvent, Data.Frames);
+        NAME_D3D12_OBJECT(Dx.Fence);
+        
         D3D::CreateCommandLists(Device, Data.Frames);
         NAME_D3D12_OBJECT(Device);
 
         D3D::CreateSwapchain(Dx.Factory.Get(), Dx.GraphicsQueue.Get(), &Window,
                              Dx.SwapChain.GetAddressOf());
-        
-        D3D::CreateFences(Device, Dx.Fence.GetAddressOf(), &Dx.FenceEvent, Data.Frames);
-        NAME_D3D12_OBJECT(Dx.Fence);
         
         D3D::CreateRTVDescriptorHeap(Device, Data.RTVHeap.GetAddressOf(), &Data.RTVHeapHandleSize);
         NAME_D3D12_OBJECT(Data.RTVHeap);
@@ -143,6 +143,13 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         D3D::CreateBackBufferRTV(Device, Dx.SwapChain.Get(), Data.Frames,
                                  Data.RTVHeap.Get(), Data.RTVHeapHandleSize);
 
+        D3D::CreateDepthBuffers(Device, Data.Frames, &Window);
+        
+        D3D::CreateDSVDescriptorHeap(Device, Data.DSVHeap.GetAddressOf(), &Data.DSVHeapHandleSize);
+        NAME_D3D12_OBJECT(Data.DSVHeap);
+
+        D3D::CreateDepthBufferDSV(Device, Data.Frames, Data.DSVHeap.Get(), Data.DSVHeapHandleSize);
+        
         UINT BackBufferIndex = 0;
 
         LONG_PTR WndprocData[] = {(LONG_PTR)&Window};
@@ -152,6 +159,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         // TODO: malloc and move pointer down the switch statement.
         DXRTutorial::TutorialData DXRData = {}; 
         QuickComputeShader::QuickComputeShaderData QCSData = {};
+        SimpleLighting::SimpleLightingData SLData = {};
         
         do {
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'N')
@@ -214,10 +222,48 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     if (!IsSimpleLightingDemoInitialized)
                     {
                         // Load the scene.
-                        Scene LoadedScene;
-                        D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
+                        // Scene LoadedScene;
+                        // D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
+
+                        D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
+                        RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+                        D3D::CreateRootSignature(Device, &RootSigDesc, &SLData.RootSig);
+                        NAME_D3D12_OBJECT(SLData.RootSig);
+                        
+                        // Simple mesh + pixel shader.
+                        SLData.SimpleMS.Filename = L"SimpleMS.hlsl";
+                        SLData.SimpleMS.TargetProfile = L"ms_6_7";
+                        SLData.SimpleMS.Entry = L"MSMain";
+                        D3D::CompileShader(&Compiler, &SLData.SimpleMS);
+                        
+                        SLData.SimplePS.Filename = L"SimpleMS.hlsl";
+                        SLData.SimplePS.TargetProfile = L"ps_6_7";
+                        SLData.SimplePS.Entry = L"PSMain";
+                        D3D::CompileShader(&Compiler, &SLData.SimplePS);
+
+                        //TODO: Make a D3D:: helper for this.
+                        D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSPSDesc = {};
+                        MSPSDesc.pRootSignature = SLData.RootSig.Get();
+                        MSPSDesc.MS.pShaderBytecode = SLData.SimpleMS.Blob->GetBufferPointer();
+                        MSPSDesc.MS.BytecodeLength = SLData.SimpleMS.Blob->GetBufferSize();
+                        MSPSDesc.PS.pShaderBytecode = SLData.SimplePS.Blob->GetBufferPointer();
+                        MSPSDesc.PS.BytecodeLength = SLData.SimplePS.Blob->GetBufferSize();
+                        MSPSDesc.NumRenderTargets = 1;
+                        MSPSDesc.RTVFormats[0] = CurrentFrame->BackBuffer->GetDesc().Format;
+                        MSPSDesc.DSVFormat = CurrentFrame->DepthBuffer->GetDesc().Format;
+                        MSPSDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+                        MSPSDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+                        MSPSDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+                        MSPSDesc.SampleDesc = DefaultSampleDesc();
+                        MSPSDesc.SampleMask = UINT_MAX;
+
+                        D3D12_PIPELINE_STATE_STREAM_DESC PSStreamDesc = {};
+                        PSStreamDesc.pPipelineStateSubobjectStream = &PSStreamDesc;
+                        PSStreamDesc.SizeInBytes = sizeof(PSStreamDesc);
+                        Check(Device->CreatePipelineState(&PSStreamDesc, IID_PPV_ARGS(&SLData.PSO)));
+                        NAME_D3D12_OBJECT(SLData.PSO);
                     }
-                    SimpleLighting::UpdateAndRender(CmdList, Window.Width, Window.Height);
+                    SimpleLighting::UpdateAndRender(SLData, CurrentFrame, CmdList, Window.Width, Window.Height);
                 }
                 break;
                 
@@ -237,18 +283,6 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         NAME_D3D12_OBJECT(QCSData.Fence);
 
                         // Bindings.
-                        D3D12_DESCRIPTOR_HEAP_DESC CSUHeapDesc = {};
-                        CSUHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-                        CSUHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-                        CSUHeapDesc.NumDescriptors = 1;
-                        Device->CreateDescriptorHeap(&CSUHeapDesc, IID_PPV_ARGS(&QCSData.CSUHeap));
-                        NAME_D3D12_OBJECT(QCSData.CSUHeap);
-
-                        D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-                        UAVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-                        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-                        Device->CreateUnorderedAccessView(Data.OutputTexture.Get(), nullptr, &UAVDesc, QCSData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
-                        
                         D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
                         RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
                         D3D::CreateRootSignature(Device, &RootSigDesc, &QCSData.RootSig);
@@ -260,6 +294,18 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         PSODesc.pRootSignature = QCSData.RootSig.Get();
                         Check(Device->CreateComputePipelineState(&PSODesc, IID_PPV_ARGS(&QCSData.PSO)));
                         NAME_D3D12_OBJECT(QCSData.PSO);
+                        
+                        D3D12_DESCRIPTOR_HEAP_DESC CSUHeapDesc = {};
+                        CSUHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+                        CSUHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+                        CSUHeapDesc.NumDescriptors = 1;
+                        Device->CreateDescriptorHeap(&CSUHeapDesc, IID_PPV_ARGS(&QCSData.CSUHeap));
+                        NAME_D3D12_OBJECT(QCSData.CSUHeap);
+
+                        D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+                        UAVDesc.Format = GlobalResources::BackBufferFormat;
+                        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                        Device->CreateUnorderedAccessView(Data.OutputTexture.Get(), nullptr, &UAVDesc, QCSData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
 
                         IsQuickComputeShaderInitialized = true; 
                     }

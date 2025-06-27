@@ -13,6 +13,7 @@
 #include <dxcapi.h>
 #include <vector>
 #include "../Shaders/Shared.h"
+#include "d3dx12.h"
 
 using namespace Microsoft::WRL;
 
@@ -121,12 +122,14 @@ struct Global
 struct Frame
 {
     ComPtr<ID3D12Resource> BackBuffer;
+    ComPtr<ID3D12Resource> DepthBuffer;
+    D3D12_CPU_DESCRIPTOR_HANDLE RTVHandle;
+    D3D12_CPU_DESCRIPTOR_HANDLE DSVHandle;
     ComPtr<ID3D12GraphicsCommandList7> GraphicsCmdList;
     ComPtr<ID3D12CommandAllocator> GraphicsCmdAlloc;
     ComPtr<ID3D12GraphicsCommandList7> ComputeCmdList;
     ComPtr<ID3D12CommandAllocator> ComputeCmdAlloc;
     UINT64 FenceValue;
-    D3D12_CPU_DESCRIPTOR_HANDLE RTVHandle;
 };
 
 struct GlobalResources
@@ -134,8 +137,11 @@ struct GlobalResources
     // Global data.
     static const INT NumBackBuffers = 2;
     static const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    static const DXGI_FORMAT DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
     ComPtr<ID3D12DescriptorHeap> RTVHeap;
     UINT RTVHeapHandleSize;
+    ComPtr<ID3D12DescriptorHeap> DSVHeap;
+    UINT DSVHeapHandleSize;
     ComPtr<ID3D12Resource> OutputTexture;
 
     // Frame data.
@@ -198,10 +204,13 @@ namespace D3D
 #define ALPHA_MODE_MASK 2
 
     void CreateDevice(Global* Dx);
+    void CreateFences(ID3D12Device10* Device, ID3D12Fence** Fence, HANDLE* FenceEvent, Frame* Frames);
     void CreateCommandLists(ID3D12Device10* Device, Frame* Frames);
     void CreateSwapchain(IDXGIFactory7* Factory, ID3D12CommandQueue* GraphicsQueue, WindowInfo* Window,
                          IDXGISwapChain4** SwapChain);
-    void CreateFences(ID3D12Device10* Device, ID3D12Fence** Fence, HANDLE* FenceEvent, Frame* Frames);
+    void CreateDepthBuffers(ID3D12Device10* Device, Frame* Frames, WindowInfo* Window);
+    void CreateDSVDescriptorHeap(ID3D12Device10* Device, ID3D12DescriptorHeap** DSVHeap, UINT* DSVHeapHandleSize);
+    void CreateDepthBufferDSV(ID3D12Device10* Device, Frame* Frames, ID3D12DescriptorHeap* DSVHeap, UINT DSVHeapHandleSize);
     void CreateRTVDescriptorHeap(ID3D12Device10* Device, ID3D12DescriptorHeap** RTVHeap, UINT* RTVHeapHandleSize);
     void CreateBackBufferRTV(ID3D12Device10* Device, IDXGISwapChain4* SwapChain, Frame* Frames, ID3D12DescriptorHeap* RTVHeap, UINT RTVHeapHandleSize);
     void Transition(ID3D12GraphicsCommandList* CmdList,

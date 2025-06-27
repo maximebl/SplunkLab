@@ -140,6 +140,7 @@
     <ClCompile Include="Basics.cpp" />
     <ClCompile Include="Gpu.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Shaders\SimpleMS.hlsl" />
     <None Include="Shaders\QuickComputeShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -164,6 +165,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.targets" Condition="Exists('External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.targets')" />
+    <Import Project="External\NugetPackages\directxtk12_desktop_win10.2025.3.21.3\build\native\directxtk12_desktop_win10.targets" Condition="Exists('External\NugetPackages\directxtk12_desktop_win10.2025.3.21.3\build\native\directxtk12_desktop_win10.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -171,5 +173,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.props')" Text="$([System.String]::Format('$(ErrorText)', 'External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.props'))" />
     <Error Condition="!Exists('External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.targets')" Text="$([System.String]::Format('$(ErrorText)', 'External\NugetPackages\Microsoft.Direct3D.DXC.1.8.2505.28\build\native\Microsoft.Direct3D.DXC.targets'))" />
+    <Error Condition="!Exists('External\NugetPackages\directxtk12_desktop_win10.2025.3.21.3\build\native\directxtk12_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', 'External\NugetPackages\directxtk12_desktop_win10.2025.3.21.3\build\native\directxtk12_desktop_win10.targets'))" />
   </Target>
 </Project>
