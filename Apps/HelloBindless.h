@@ -1,11 +1,11 @@
 #pragma once
 #include "../Headers/Gpu.h"
 
-namespace QuickComputeShader
+namespace HelloBindless
 {
-    struct QuickComputeShaderData
+    struct HelloBindlessData
     {
-        Shader QuickShader;
+        Shader BindlessShader;
         ComPtr<ID3D12RootSignature> RootSig;
         ComPtr<ID3D12PipelineState> PSO;
         ComPtr<ID3D12DescriptorHeap> CSUHeap;
@@ -16,5 +16,5 @@ namespace QuickComputeShader
         UINT64 FenceValue;
     };
 
-    void UpdateAndRender(QuickComputeShaderData& Data, ID3D12GraphicsCommandList7* CmdList, INT Width, INT Height);
+    void UpdateAndRender(HelloBindlessData& Data, ID3D12GraphicsCommandList7* CmdList, INT Width, INT Height);
 }

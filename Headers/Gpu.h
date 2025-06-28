@@ -197,6 +197,7 @@ struct Scene
 
 namespace D3D
 {
+#define DEBUG_LAYER 1
 #define GPU_VALIDATION 1
 #define INVALID_ID (-1)
 #define ALPHA_MODE_OPAQUE 0
@@ -224,10 +225,19 @@ namespace D3D
                                   D3D12_RESOURCE_FLAGS Flags, D3D12_HEAP_TYPE HeapType,
                                   ID3D12Resource** Texture,
                                   D3D12_RESOURCE_STATES InitialState = D3D12_RESOURCE_STATE_COPY_SOURCE,
-                                  DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM, UINT16 MipLevels = 1);
+                                  DXGI_FORMAT Format = GlobalResources::BackBufferFormat,
+                                  UINT16 MipLevels = 1,
+                                  D3D12_CLEAR_VALUE* ClearValue = nullptr);
     void CreateShaderCompiler(ShaderCompiler* Compiler);
     void CompileShader(ShaderCompiler* Compiler, Shader* Program);
     void CreateRootSignature(ID3D12Device10* Device, D3D12_ROOT_SIGNATURE_DESC1* Desc, ID3D12RootSignature** RootSignature);
+    void CreateMeshShaderPSO(ID3D12Device10* Device,
+                             Shader* MS,
+                             Shader* PS,
+                             ID3D12RootSignature* RootSig,
+                             ID3D12PipelineState** OutPSO,
+                             DXGI_FORMAT BackBufferFormat = GlobalResources::BackBufferFormat,
+                             DXGI_FORMAT DepthBufferFormat = GlobalResources::DepthBufferFormat);
     void CreateTopLevel(ID3D12Device10* Device, ID3D12GraphicsCommandList7* CmdList,
                         UINT NumInstances, ID3D12Resource* InstanceDescs,
                         ID3D12Resource** TopLevelASScratch, ID3D12Resource** TopLevelAS);

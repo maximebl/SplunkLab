@@ -11,8 +11,10 @@ namespace D3D
     {
 #ifdef _DEBUG
         Check(D3D12GetDebugInterface(IID_PPV_ARGS(&Dx->Debug)));
-        Dx->Debug->EnableDebugLayer();
         Dx->Debug->SetEnableAutoName(true);
+// #if DEBUG_LAYER
+        Dx->Debug->EnableDebugLayer();
+// #endif
 #if GPU_VALIDATION
         // GPU-based validation must be enabled before creating the device.
         Dx->Debug->SetEnableGPUBasedValidation(true);
@@ -32,21 +34,22 @@ namespace D3D
                                 IID_PPV_ARGS(&Dx->Device)));
 
         // The info queues must be created after the device has been created with the debug layer active.
+// #if _DEBUG && DEBUG_LAYER
 #ifdef _DEBUG
         ComPtr<IDXGIInfoQueue> DxgiInfoQueue;
         Check(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&DxgiInfoQueue)));
         Check(DxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true));
         Check(DxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true));
         Check(DxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING, true));
-
+        
         ComPtr<ID3D12InfoQueue> InfoQueue;
         Check(Dx->Device.As<ID3D12InfoQueue>(&InfoQueue));
-
+        
         D3D12_MESSAGE_ID DisabledMessages[] =
         {
             D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
         };
-
+        
         D3D12_INFO_QUEUE_FILTER filter = {};
         filter.DenyList.NumIDs = _countof(DisabledMessages);
         filter.DenyList.pIDList = DisabledMessages;
@@ -123,6 +126,10 @@ namespace D3D
 
     void CreateDepthBuffers(ID3D12Device10* Device, Frame* Frames, WindowInfo* Window)
     {
+        D3D12_CLEAR_VALUE DepthClearValue = {};
+        DepthClearValue.Format = GlobalResources::DepthBufferFormat;
+        DepthClearValue.DepthStencil.Depth = 1.f;
+        DepthClearValue.DepthStencil.Stencil = 0;
         for (int i = 0; i < GlobalResources::NumBackBuffers; ++i)
         {
             CreateCommitted2DTexture(Device,
@@ -131,7 +138,9 @@ namespace D3D
                                      D3D12_HEAP_TYPE_DEFAULT,
                                      Frames[i].DepthBuffer.GetAddressOf(),
                                      D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                     GlobalResources::DepthBufferFormat);
+                                     GlobalResources::DepthBufferFormat,
+                                     1, // MipLevels.
+                                     &DepthClearValue);
             NAME_D3D12_OBJECT_INDEXED(Frames[i].DepthBuffer, i);
         }
     }
@@ -188,10 +197,16 @@ namespace D3D
                                               InitialState, nullptr, IID_PPV_ARGS(Buffer)));
     }
 
-    void CreateCommitted2DTexture(ID3D12Device10* Device, UINT64 Width, UINT Height,
-                                  D3D12_RESOURCE_FLAGS Flags, D3D12_HEAP_TYPE HeapType,
+    void CreateCommitted2DTexture(ID3D12Device10* Device,
+                                  UINT64 Width,
+                                  UINT Height,
+                                  D3D12_RESOURCE_FLAGS Flags,
+                                  D3D12_HEAP_TYPE HeapType,
                                   ID3D12Resource** Texture,
-                                  D3D12_RESOURCE_STATES InitialState, DXGI_FORMAT Format, UINT16 MipLevels)
+                                  D3D12_RESOURCE_STATES InitialState,
+                                  DXGI_FORMAT Format,
+                                  UINT16 MipLevels,
+                                  D3D12_CLEAR_VALUE* ClearValue)
     {
         D3D12_HEAP_PROPERTIES HeapDesc = {};
         HeapDesc.Type = HeapType;
@@ -208,7 +223,7 @@ namespace D3D
         ResourceDesc.SampleDesc.Count = 1;
         ResourceDesc.SampleDesc.Quality = 0;
 
-        Check(Device->CreateCommittedResource(&HeapDesc, D3D12_HEAP_FLAG_NONE, &ResourceDesc, InitialState, nullptr,
+        Check(Device->CreateCommittedResource(&HeapDesc, D3D12_HEAP_FLAG_NONE, &ResourceDesc, InitialState, ClearValue,
                                               IID_PPV_ARGS(Texture)));
     }
 
@@ -241,7 +256,9 @@ namespace D3D
         // Arguments.
         const wchar_t* Arguments[] = {
 #if _DEBUG
-            L"-Zs", // Generate small PDB with just sources and compile options. Cannot be used together with -Zi.
+            L"-Zi",
+            L"-Qembed_debug",
+            L"-Qsource_in_debug_module",
             L"-Od",
 #else
            L"-O3",
@@ -323,6 +340,38 @@ namespace D3D
         Check(Device->CreateRootSignature(0,
                                           RootsigBlob->GetBufferPointer(), RootsigBlob->GetBufferSize(),
                                           IID_PPV_ARGS(RootSignature)));
+    }
+
+    void CreateMeshShaderPSO(ID3D12Device10* Device,
+                             Shader* MS,
+                             Shader* PS,
+                             ID3D12RootSignature* RootSig,
+                             ID3D12PipelineState** OutPSO,
+                             DXGI_FORMAT BackBufferFormat,
+                             DXGI_FORMAT DepthBufferFormat)
+    {
+        D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSPSDesc = {};
+        MSPSDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        MSPSDesc.pRootSignature = RootSig;
+        MSPSDesc.MS.pShaderBytecode = MS->Blob->GetBufferPointer();
+        MSPSDesc.MS.BytecodeLength = MS->Blob->GetBufferSize();
+        MSPSDesc.PS.pShaderBytecode = PS->Blob->GetBufferPointer();
+        MSPSDesc.PS.BytecodeLength = PS->Blob->GetBufferSize();
+        MSPSDesc.NumRenderTargets = 1;
+        MSPSDesc.RTVFormats[0] = BackBufferFormat;
+        MSPSDesc.DSVFormat = DepthBufferFormat;
+        MSPSDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        MSPSDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        MSPSDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        MSPSDesc.SampleDesc = DefaultSampleDesc();
+        MSPSDesc.SampleMask = UINT_MAX;
+        CD3DX12_PIPELINE_MESH_STATE_STREAM PSOStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(MSPSDesc);
+
+        D3D12_PIPELINE_STATE_STREAM_DESC PSStreamDesc = {};
+        PSStreamDesc.pPipelineStateSubobjectStream = &PSOStream;
+        PSStreamDesc.SizeInBytes = sizeof(PSOStream);
+        Check(Device->CreatePipelineState(&PSStreamDesc, IID_PPV_ARGS(OutPSO)));
+
     }
 
     void CreateDSVDescriptorHeap(ID3D12Device10* Device, ID3D12DescriptorHeap** DSVHeap, UINT* DSVHeapHandleSize)

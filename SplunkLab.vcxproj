@@ -135,26 +135,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Apps\DXRTutorial.cpp" />
-    <ClCompile Include="Apps\QuickComputeShader.cpp" />
-    <ClCompile Include="Apps\SimpleLighting.cpp" />
+    <ClCompile Include="Apps\HelloBindless.cpp" />
+    <ClCompile Include="Apps\MSHelloTriangle.cpp" />
     <ClCompile Include="Basics.cpp" />
     <ClCompile Include="Gpu.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Shaders\SimpleMS.hlsl" />
-    <None Include="Shaders\QuickComputeShader.hlsl">
+    <None Include="Shaders\SimpleMS.hlsl" />
+    <None Include="Shaders\SimpleBindless.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Apps\DXRTutorial.h" />
-    <ClInclude Include="Apps\QuickComputeShader.h" />
-    <ClInclude Include="Apps\SimpleLighting.h" />
+    <ClInclude Include="Apps\HelloBindless.h" />
+    <ClInclude Include="Apps\MSHelloTriangle.h" />
     <ClInclude Include="Headers\Basics.h" />
     <ClInclude Include="Headers\Gpu.h" />
     <ClInclude Include="Shaders\Shared.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\IntroDXR.hlsl">
+    <None Include="Shaders\SimpleDXR.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

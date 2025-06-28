@@ -1,8 +1,8 @@
 ﻿// #include "cuda_runtime.h"
 #include "Headers/Gpu.h"
 #include "Apps/DXRTutorial.h"
-#include "Apps/QuickComputeShader.h"
-#include "Apps/SimpleLighting.h"
+#include "Apps/HelloBindless.h"
+#include "Apps/MSHelloTriangle.h"
 
 using namespace DirectX;
 
@@ -81,13 +81,13 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         {
             None,
             NvidiaTutorial,
-            SimpleLighting,
-            QuickComputeShader
+            MSHelloTriangle,
+            HelloBindless
         };
-        Demo CurrentDemo = Demo::QuickComputeShader;
+        Demo CurrentDemo = Demo::MSHelloTriangle;
         
         WindowInfo Window;
-        Window.WindowName = "RayLab";
+        Window.WindowName = "SplunkLab";
         Window.X = 100;
         Window.Y = 100;
         Window.Width = 2560;
@@ -97,8 +97,8 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         Global Dx;
         GlobalResources Data;
         bool IsNvidiaTutorialInitialized = false;
-        bool IsSimpleLightingDemoInitialized = false;
-        bool IsQuickComputeShaderInitialized = false;
+        bool IsMSHelloTriangleInitialized = false;
+        bool IsHelloBindlessInitialized = false;
 
         // TODO: Replace with instancing a compiler everytime we call CompileShader() like DxrPathTracer does to allow multithreading.
         ShaderCompiler Compiler;
@@ -132,7 +132,6 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         NAME_D3D12_OBJECT(Dx.Fence);
         
         D3D::CreateCommandLists(Device, Data.Frames);
-        NAME_D3D12_OBJECT(Device);
 
         D3D::CreateSwapchain(Dx.Factory.Get(), Dx.GraphicsQueue.Get(), &Window,
                              Dx.SwapChain.GetAddressOf());
@@ -158,31 +157,27 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
         // TODO: malloc and move pointer down the switch statement.
         DXRTutorial::TutorialData DXRData = {}; 
-        QuickComputeShader::QuickComputeShaderData QCSData = {};
-        SimpleLighting::SimpleLightingData SLData = {};
+        HelloBindless::HelloBindlessData QCSData = {};
+        MSHelloTriangle::MSHelloTriangleData SLData = {};
         
         do {
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'N')
             {
                 CurrentDemo = Demo::NvidiaTutorial;
             }
-            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'L')
+            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'M')
             {
-                CurrentDemo = Demo::SimpleLighting;
+                CurrentDemo = Demo::MSHelloTriangle;
             }
-            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'C')
+            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'B')
             {
-                CurrentDemo = Demo::QuickComputeShader;
+                CurrentDemo = Demo::HelloBindless;
             }
             
             Frame* CurrentFrame = &Data.Frames[BackBufferIndex];
             ID3D12GraphicsCommandList7* CmdList = CurrentFrame->GraphicsCmdList.Get();
             Check(CurrentFrame->GraphicsCmdAlloc->Reset());
             Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
-
-            D3D::Transition(CmdList,
-                            D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            Data.OutputTexture.Get());
 
             switch (CurrentDemo)
             {
@@ -203,7 +198,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         Check(CurrentFrame->GraphicsCmdAlloc->Reset());
                         Check(CmdList->Reset(CurrentFrame->GraphicsCmdAlloc.Get(), nullptr));
                 
-                        DXRData.RtShader.Filename = L"IntroDXR.hlsl";
+                        DXRData.RtShader.Filename = L"SimpleDXR.hlsl";
                         DXRData.RtShader.TargetProfile = L"lib_6_3";
                         DXRData.RtShader.Entry = L"";
                         D3D::CompileShader(&Compiler, &DXRData.RtShader);
@@ -213,23 +208,23 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                 
                         IsNvidiaTutorialInitialized = true;
                     }
-                    DXRTutorial::UpdateAndRender(DXRData, CmdList, Window.Width, Window.Height);
+
+                    DXRTutorial::UpdateAndRender(DXRData,
+                                                 CurrentFrame,
+                                                 CmdList,
+                                                 Data.OutputTexture.Get(),
+                                                 Window.Width, Window.Height);
                 }
                 break;
             
-            case Demo::SimpleLighting:
+            case Demo::MSHelloTriangle:
                 {
-                    if (!IsSimpleLightingDemoInitialized)
+                    if (!IsMSHelloTriangleInitialized)
                     {
                         // Load the scene.
                         // Scene LoadedScene;
                         // D3D::LoadModel(R"(Models\\cornell_box\\cornell_box.gltf)", &LoadedScene);
 
-                        D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
-                        RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-                        D3D::CreateRootSignature(Device, &RootSigDesc, &SLData.RootSig);
-                        NAME_D3D12_OBJECT(SLData.RootSig);
-                        
                         // Simple mesh + pixel shader.
                         SLData.SimpleMS.Filename = L"SimpleMS.hlsl";
                         SLData.SimpleMS.TargetProfile = L"ms_6_7";
@@ -241,56 +236,44 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         SLData.SimplePS.Entry = L"PSMain";
                         D3D::CompileShader(&Compiler, &SLData.SimplePS);
 
-                        //TODO: Make a D3D:: helper for this.
-                        D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSPSDesc = {};
-                        MSPSDesc.pRootSignature = SLData.RootSig.Get();
-                        MSPSDesc.MS.pShaderBytecode = SLData.SimpleMS.Blob->GetBufferPointer();
-                        MSPSDesc.MS.BytecodeLength = SLData.SimpleMS.Blob->GetBufferSize();
-                        MSPSDesc.PS.pShaderBytecode = SLData.SimplePS.Blob->GetBufferPointer();
-                        MSPSDesc.PS.BytecodeLength = SLData.SimplePS.Blob->GetBufferSize();
-                        MSPSDesc.NumRenderTargets = 1;
-                        MSPSDesc.RTVFormats[0] = CurrentFrame->BackBuffer->GetDesc().Format;
-                        MSPSDesc.DSVFormat = CurrentFrame->DepthBuffer->GetDesc().Format;
-                        MSPSDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-                        MSPSDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-                        MSPSDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-                        MSPSDesc.SampleDesc = DefaultSampleDesc();
-                        MSPSDesc.SampleMask = UINT_MAX;
-
-                        D3D12_PIPELINE_STATE_STREAM_DESC PSStreamDesc = {};
-                        PSStreamDesc.pPipelineStateSubobjectStream = &PSStreamDesc;
-                        PSStreamDesc.SizeInBytes = sizeof(PSStreamDesc);
-                        Check(Device->CreatePipelineState(&PSStreamDesc, IID_PPV_ARGS(&SLData.PSO)));
-                        NAME_D3D12_OBJECT(SLData.PSO);
+                        D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
+                        D3D::CreateRootSignature(Device, &RootSigDesc, &SLData.RootSig);
+                        NAME_D3D12_OBJECT(SLData.RootSig);
+                        
+                        D3D::CreateMeshShaderPSO(Device,
+                                                 &SLData.SimpleMS, &SLData.SimplePS,
+                                                 SLData.RootSig.Get(),
+                                                 &SLData.GreenTrianglePSO);
+                        NAME_D3D12_OBJECT(SLData.GreenTrianglePSO);
                     }
-                    SimpleLighting::UpdateAndRender(SLData, CurrentFrame, CmdList, Window.Width, Window.Height);
+                    MSHelloTriangle::UpdateAndRender(SLData, CurrentFrame, CmdList, Window.Width, Window.Height);
                 }
                 break;
                 
-            case Demo::QuickComputeShader:
+            case Demo::HelloBindless:
                 {
-                    if (!IsQuickComputeShaderInitialized)
+                    if (!IsHelloBindlessInitialized)
                     {
                         // Create a compute shader.
-                        QCSData.QuickShader.Filename = L"QuickComputeShader.hlsl";
-                        QCSData.QuickShader.TargetProfile = L"cs_6_7";
-                        QCSData.QuickShader.Entry = L"Main";
-                        D3D::CompileShader(&Compiler, &QCSData.QuickShader);
+                        QCSData.BindlessShader.Filename = L"SimpleBindless.hlsl";
+                        QCSData.BindlessShader.TargetProfile = L"cs_6_7";
+                        QCSData.BindlessShader.Entry = L"Main";
+                        D3D::CompileShader(&Compiler, &QCSData.BindlessShader);
 
                         // Create the compute synchronization objects specific to this app.
                         QCSData.FenceEvent = CreateEventEx(nullptr, "QCSData->FenceEvent", FALSE, EVENT_ALL_ACCESS);
                         Check(Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&QCSData.Fence)));
                         NAME_D3D12_OBJECT(QCSData.Fence);
 
-                        // Bindings.
+                        // Bindless setup.
                         D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
                         RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
                         D3D::CreateRootSignature(Device, &RootSigDesc, &QCSData.RootSig);
                         NAME_D3D12_OBJECT(QCSData.RootSig);
 
                         D3D12_COMPUTE_PIPELINE_STATE_DESC PSODesc = {};
-                        PSODesc.CS.pShaderBytecode = QCSData.QuickShader.Blob->GetBufferPointer();
-                        PSODesc.CS.BytecodeLength = QCSData.QuickShader.Blob->GetBufferSize();
+                        PSODesc.CS.pShaderBytecode = QCSData.BindlessShader.Blob->GetBufferPointer();
+                        PSODesc.CS.BytecodeLength = QCSData.BindlessShader.Blob->GetBufferSize();
                         PSODesc.pRootSignature = QCSData.RootSig.Get();
                         Check(Device->CreateComputePipelineState(&PSODesc, IID_PPV_ARGS(&QCSData.PSO)));
                         NAME_D3D12_OBJECT(QCSData.PSO);
@@ -307,7 +290,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
                         Device->CreateUnorderedAccessView(Data.OutputTexture.Get(), nullptr, &UAVDesc, QCSData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
 
-                        IsQuickComputeShaderInitialized = true; 
+                        IsHelloBindlessInitialized = true; 
                     }
 
                     // Wait before resetting.
@@ -319,12 +302,29 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     Check(CurrentFrame->ComputeCmdAlloc->Reset());
                     Check(CCmdList->Reset(CurrentFrame->ComputeCmdAlloc.Get(), nullptr));
 
+                    D3D::Transition(CmdList,
+                                    D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                                    Data.OutputTexture.Get());
+                    
                     // Render.
-                    QuickComputeShader::UpdateAndRender(QCSData, CCmdList, Window.Width, Window.Height);
+                    HelloBindless::UpdateAndRender(QCSData, CCmdList, Window.Width, Window.Height);
                     
                     Check(CCmdList->Close());
                     Dx.ComputeQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)(&CCmdList));
                     Dx.ComputeQueue->Signal(QCSData.Fence.Get(), QCSData.FenceValue + 1);
+                    
+                    D3D::Transition(CmdList,
+                                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE,  
+                                    Data.OutputTexture.Get());
+                    D3D::Transition(CmdList,
+                                    D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST,
+                                    CurrentFrame->BackBuffer.Get());
+                    
+                    CmdList->CopyResource(CurrentFrame->BackBuffer.Get(), Data.OutputTexture.Get());
+                    
+                    D3D::Transition(CmdList,
+                                    D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT,
+                                    CurrentFrame->BackBuffer.Get());
                         
                 }
                 break;
@@ -335,19 +335,6 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                 break;
             }
             
-            D3D::Transition(CmdList,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE,  
-                            Data.OutputTexture.Get());
-            D3D::Transition(CmdList,
-                            D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST,
-                            CurrentFrame->BackBuffer.Get());
-        
-            CmdList->CopyResource(CurrentFrame->BackBuffer.Get(), Data.OutputTexture.Get());
-        
-            D3D::Transition(CmdList,
-                            D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT,
-                            CurrentFrame->BackBuffer.Get());
-        
             Check(CmdList->Close());
             Dx.GraphicsQueue->ExecuteCommandLists(1, (ID3D12CommandList* const*)(&CmdList));
 

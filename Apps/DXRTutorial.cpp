@@ -2,8 +2,16 @@
 
 using namespace DirectX;
 
-void DXRTutorial::UpdateAndRender(TutorialData& DXRData, ID3D12GraphicsCommandList7* CmdList, UINT Width, UINT Height)
+void DXRTutorial::UpdateAndRender(TutorialData& DXRData,
+                                  Frame* CurrentFrame,
+                                  ID3D12GraphicsCommandList7* CmdList,
+                                  ID3D12Resource* OutTexture,
+                                  UINT Width, UINT Height)
 {
+    D3D::Transition(CmdList,
+                    D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                    OutTexture);
+    
     DXRTutorial::UpdateInstanceDescriptions(DXRData.InstanceDescs.Get(),
                                             &DXRData.BottomLevelInfos[0],
                                             DXRData.Rotation);
@@ -43,6 +51,19 @@ void DXRTutorial::UpdateAndRender(TutorialData& DXRData, ID3D12GraphicsCommandLi
     DispatchRaysDesc.HitGroupTable.SizeInBytes = NumHitShaders * DXRData.ShaderTableEntrySize;
 
     CmdList->DispatchRays(&DispatchRaysDesc);
+
+    D3D::Transition(CmdList,
+                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE,
+                    OutTexture);
+    D3D::Transition(CmdList,
+                    D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST,
+                    CurrentFrame->BackBuffer.Get());
+
+    CmdList->CopyResource(CurrentFrame->BackBuffer.Get(), OutTexture);
+
+    D3D::Transition(CmdList,
+                    D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT,
+                    CurrentFrame->BackBuffer.Get());
 }
 
 void DXRTutorial::InitializeAccelerationStructures(ID3D12Device10* Device, ID3D12GraphicsCommandList7* CmdList, TutorialData* DXRData)

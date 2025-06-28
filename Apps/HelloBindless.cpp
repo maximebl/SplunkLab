@@ -1,8 +1,8 @@
-#include "QuickComputeShader.h"
+#include "HelloBindless.h"
 
 using namespace DirectX;
 
-void QuickComputeShader::UpdateAndRender(QuickComputeShaderData& Data,
+void HelloBindless::UpdateAndRender(HelloBindlessData& Data,
                                          ID3D12GraphicsCommandList7* CmdList,
                                          INT Width, INT Height)
 {

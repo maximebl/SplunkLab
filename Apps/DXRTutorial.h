@@ -64,7 +64,11 @@ namespace DXRTutorial
         ComPtr<ID3D12Resource> PerInstanceUploadResource;
     };
 
-    void UpdateAndRender(TutorialData& DXRData, ID3D12GraphicsCommandList7* CmdList, UINT Width, UINT Height);
+    void UpdateAndRender(TutorialData& DXRData,
+                         Frame* CurrentFrame,
+                         ID3D12GraphicsCommandList7* CmdList,
+                         ID3D12Resource* OutTexture,
+                         UINT Width, UINT Height);
     void InitializeAccelerationStructures(ID3D12Device10* Device, ID3D12GraphicsCommandList7* CmdList, TutorialData* DXRData);
     void InitializeShaderBindings(ID3D12Device10* Device, TutorialData* DXRData, ID3D12Resource* OutputTexture);
     void CreateBottomLevel(ID3D12Device10* Device, ID3D12GraphicsCommandList7* CmdList, ID3D12Resource* VB, UINT VertexCount,
