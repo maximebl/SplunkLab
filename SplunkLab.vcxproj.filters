@@ -5,19 +5,27 @@
     <ClCompile Include="Apps\DXRTutorial.cpp" />
     <ClCompile Include="Gpu.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Apps\SimpleLighting.cpp" />
+    <ClCompile Include="Apps\HelloBindless.cpp" />
+    <ClCompile Include="Apps\MSExperiments.cpp" />
+    <ClCompile Include="Apps\MSHelloTriangle.cpp" />
+    <ClCompile Include="External\SimpleCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Apps\SimpleLighting.h" />
     <ClInclude Include="Apps\DXRTutorial.h" />
     <ClInclude Include="Shaders\Shared.h" />
     <ClInclude Include="Headers\Basics.h" />
     <ClInclude Include="Headers\Gpu.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Shaders\PathTracer.hlsl" />
+    <ClInclude Include="Apps\HelloBindless.h" />
+    <ClInclude Include="Apps\MSExperiments.h" />
+    <ClInclude Include="Apps\MSHelloTriangle.h" />
+    <ClInclude Include="External\SimpleCamera.h" />
+    <ClInclude Include="External\StepTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Shaders\SimpleMS.hlsl" />
+    <None Include="Shaders\SimpleBindless.hlsl" />
+    <None Include="Shaders\SimpleDXR.hlsl" />
+    <None Include="Shaders\MSExperiment.hlsl" />
   </ItemGroup>
 </Project>

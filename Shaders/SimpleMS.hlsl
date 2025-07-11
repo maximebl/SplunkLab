@@ -24,21 +24,18 @@ void MSMain(
     out indices uint3 OutTriangleIndices[1]
     )
 {
-    // uint NumOutputVertices = 8;
-    // uint NumOutputPrimitives = 12;
     uint NumOutputVertices = 3;
     uint NumOutputPrimitives = 1;
     SetMeshOutputCounts(NumOutputVertices, NumOutputPrimitives);
 
-    if (gtid < NumOutputVertices) // There's only 8 vertices, but the gtid goes up to 12.
+    if (gtid < NumOutputVertices)
     {
         // This will execute 8 times.
         float4 Position = TriangleVerticesPositions[gtid];
         OutTriangleVertex[gtid].Position = Position;
-        OutTriangleVertex[gtid].Color = float4(0.f, 1.f, 0.f, 1.f);
+        OutTriangleVertex[gtid].Color = float4(1.f, 1.f, 0.f, 1.f);
     }
 
-    // This will execute 12 times.
     OutTriangleIndices[gtid] = TriangleIndices[gtid];
 }
 

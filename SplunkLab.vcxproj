@@ -136,8 +136,10 @@
   <ItemGroup>
     <ClCompile Include="Apps\DXRTutorial.cpp" />
     <ClCompile Include="Apps\HelloBindless.cpp" />
+    <ClCompile Include="Apps\MSExperiments.cpp" />
     <ClCompile Include="Apps\MSHelloTriangle.cpp" />
     <ClCompile Include="Basics.cpp" />
+    <ClCompile Include="External\SimpleCamera.cpp" />
     <ClCompile Include="Gpu.cpp" />
     <ClCompile Include="Main.cpp" />
     <None Include="Shaders\SimpleMS.hlsl" />
@@ -148,7 +150,10 @@
   <ItemGroup>
     <ClInclude Include="Apps\DXRTutorial.h" />
     <ClInclude Include="Apps\HelloBindless.h" />
+    <ClInclude Include="Apps\MSExperiments.h" />
     <ClInclude Include="Apps\MSHelloTriangle.h" />
+    <ClInclude Include="External\SimpleCamera.h" />
+    <ClInclude Include="External\StepTimer.h" />
     <ClInclude Include="Headers\Basics.h" />
     <ClInclude Include="Headers\Gpu.h" />
     <ClInclude Include="Shaders\Shared.h" />
@@ -161,6 +166,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Shaders\MSExperiment.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\MSExperiment.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

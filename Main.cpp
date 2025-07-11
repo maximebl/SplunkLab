@@ -2,6 +2,7 @@
 #include "Headers/Gpu.h"
 #include "Apps/DXRTutorial.h"
 #include "Apps/HelloBindless.h"
+#include "Apps/MSExperiments.h"
 #include "Apps/MSHelloTriangle.h"
 
 using namespace DirectX;
@@ -82,9 +83,10 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             None,
             NvidiaTutorial,
             MSHelloTriangle,
-            HelloBindless
+            HelloBindless,
+            MSExperiments,
         };
-        Demo CurrentDemo = Demo::MSHelloTriangle;
+        Demo CurrentDemo = Demo::MSExperiments;
         
         WindowInfo Window;
         Window.WindowName = "SplunkLab";
@@ -99,6 +101,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         bool IsNvidiaTutorialInitialized = false;
         bool IsMSHelloTriangleInitialized = false;
         bool IsHelloBindlessInitialized = false;
+        bool IsMSExperimentsInitialized = false;
 
         // TODO: Replace with instancing a compiler everytime we call CompileShader() like DxrPathTracer does to allow multithreading.
         ShaderCompiler Compiler;
@@ -159,8 +162,14 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         DXRTutorial::TutorialData DXRData = {}; 
         HelloBindless::HelloBindlessData QCSData = {};
         MSHelloTriangle::MSHelloTriangleData SLData = {};
+        MSExperiments::MSExperimentsData MSEData = {};
         
         do {
+            if (WindowMessage.message == WM_KEYDOWN && CurrentDemo == Demo::MSExperiments)
+            {
+                MSEData.Camera.OnKeyDown(WindowMessage.wParam);
+            }
+            
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'N')
             {
                 CurrentDemo = Demo::NvidiaTutorial;
@@ -172,6 +181,10 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'B')
             {
                 CurrentDemo = Demo::HelloBindless;
+            }
+            if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'E')
+            {
+                CurrentDemo = Demo::MSExperiments;
             }
             
             Frame* CurrentFrame = &Data.Frames[BackBufferIndex];
@@ -227,12 +240,12 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
                         // Simple mesh + pixel shader.
                         SLData.SimpleMS.Filename = L"SimpleMS.hlsl";
-                        SLData.SimpleMS.TargetProfile = L"ms_6_7";
+                        SLData.SimpleMS.TargetProfile = L"ms_6_6";
                         SLData.SimpleMS.Entry = L"MSMain";
                         D3D::CompileShader(&Compiler, &SLData.SimpleMS);
                         
                         SLData.SimplePS.Filename = L"SimpleMS.hlsl";
-                        SLData.SimplePS.TargetProfile = L"ps_6_7";
+                        SLData.SimplePS.TargetProfile = L"ps_6_6";
                         SLData.SimplePS.Entry = L"PSMain";
                         D3D::CompileShader(&Compiler, &SLData.SimplePS);
 
@@ -326,6 +339,59 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                                     D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT,
                                     CurrentFrame->BackBuffer.Get());
                         
+                }
+                break;
+                
+            case Demo::MSExperiments:
+                {
+                    if (!IsMSExperimentsInitialized)
+                    {
+                        MSEData.Camera.Init({0.f, 5.f, 35.f});
+                        MSEData.Camera.SetMoveSpeed(10.f);
+                        
+                        // Simple mesh + pixel shader.
+                        MSEData.SimpleMS.Filename = L"MSExperiment.hlsl";
+                        MSEData.SimpleMS.TargetProfile = L"ms_6_6";
+                        MSEData.SimpleMS.Entry = L"MSMain";
+                        D3D::CompileShader(&Compiler, &MSEData.SimpleMS);
+                        
+                        MSEData.SimplePS.Filename = L"MSExperiment.hlsl";
+                        MSEData.SimplePS.TargetProfile = L"ps_6_6";
+                        MSEData.SimplePS.Entry = L"PSMain";
+                        D3D::CompileShader(&Compiler, &MSEData.SimplePS);
+
+                        D3D12_ROOT_SIGNATURE_DESC1 RootSigDesc = {};
+                        RootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+                        D3D::CreateRootSignature(Device, &RootSigDesc, &MSEData.RootSig);
+                        NAME_D3D12_OBJECT(MSEData.RootSig);
+                        
+                        D3D::CreateMeshShaderPSO(Device,
+                                                 &MSEData.SimpleMS, &MSEData.SimplePS,
+                                                 MSEData.RootSig.Get(),
+                                                 &MSEData.CubeInstancingPSO);
+                        NAME_D3D12_OBJECT(MSEData.CubeInstancingPSO);
+
+                        D3D12_DESCRIPTOR_HEAP_DESC CSUHeapDesc = {};
+                        CSUHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+                        CSUHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+                        CSUHeapDesc.NumDescriptors = 1;
+                        Device->CreateDescriptorHeap(&CSUHeapDesc, IID_PPV_ARGS(&MSEData.CSUHeap));
+                        NAME_D3D12_OBJECT(MSEData.CSUHeap);
+
+                        // TODO: Confirm that we need unique data per frame.
+                        D3D::CreateCommittedBuffer(Device,
+                                                   D3D12_HEAP_TYPE_GPU_UPLOAD,
+                                                   sizeof(Constants),
+                                                   &MSEData.SceneConstantsBuffer);
+                        NAME_D3D12_OBJECT(MSEData.SceneConstantsBuffer);
+                        Check(MSEData.SceneConstantsBuffer->Map(0, nullptr, (void**)&MSEData.SceneConstants));
+
+                        D3D12_CONSTANT_BUFFER_VIEW_DESC SceneConstantsCbvDesc = {};
+                        SceneConstantsCbvDesc.BufferLocation = MSEData.SceneConstantsBuffer->GetGPUVirtualAddress();
+                        SceneConstantsCbvDesc.SizeInBytes = sizeof(Constants);
+                        Device->CreateConstantBufferView(&SceneConstantsCbvDesc, MSEData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
+                    }
+                    MSExperiments::UpdateAndRender(MSEData, CurrentFrame, CmdList, Window.Width, Window.Height);
                 }
                 break;
                 

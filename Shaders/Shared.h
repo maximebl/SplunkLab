@@ -1,17 +1,12 @@
 ﻿#pragma once
 
-#if __cplusplus
-#pragma once
+#ifdef __cplusplus
 #define matrix DirectX::XMMATRIX
 #define float4 DirectX::XMFLOAT4
 #define float3 DirectX::XMFLOAT3
 #define float2 DirectX::XMFLOAT2
-#define float16_t uint16_t
-#define float16_t2 uint32_t
+#define float4x4 DirectX::XMFLOAT4X4
 #define uint uint32_t
-#define OUT_PARAMETER(X) X&
-#else
-#define OUT_PARAMETER(X) out X
 #endif
 
 struct MaterialData
@@ -31,4 +26,14 @@ struct MaterialData
 	float AlphaCutoff;
 	int DoubleSided; //< 0: false, 1: true
 	int NormalTexId; //< Tangent space XYZ
+};
+
+#ifdef __cplusplus
+_declspec(align(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT))
+#endif
+struct Constants
+{
+	float3 TestColor;
+	float4x4 View;
+	float4x4 ViewProjection;
 };

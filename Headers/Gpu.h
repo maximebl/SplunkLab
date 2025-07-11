@@ -175,7 +175,7 @@ struct BottomLevelASInfo
 struct Material
 {
     std::string Name = "";
-	MaterialData Data;	
+	// MaterialData Data;	
 };
 
 struct MeshPrimitive

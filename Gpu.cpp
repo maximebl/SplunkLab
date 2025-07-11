@@ -245,6 +245,9 @@ namespace D3D
         IDxcBlobEncoding* BlobEncoding;
         Check(Compiler->Utils->LoadFile(ShaderFilePath.c_str(), &CodePage, &BlobEncoding));
 
+        IDxcIncludeHandler* IncludeHandler;
+        Compiler->Utils->CreateDefaultIncludeHandler(&IncludeHandler);
+
         DxcBuffer SourceBuffer;
         SourceBuffer.Ptr = BlobEncoding->GetBufferPointer();
         SourceBuffer.Size = BlobEncoding->GetBufferSize();
@@ -257,6 +260,7 @@ namespace D3D
         const wchar_t* Arguments[] = {
 #if _DEBUG
             L"-Zi",
+            L"-H",
             L"-Qembed_debug",
             L"-Qsource_in_debug_module",
             L"-Od",
@@ -274,7 +278,7 @@ namespace D3D
         Check(Compiler->Compiler->Compile(
             &SourceBuffer,
             Arguments, _countof(Arguments),
-            nullptr,
+            IncludeHandler,
             IID_PPV_ARGS(&CompilationResult)
         ));
 
@@ -436,7 +440,7 @@ namespace D3D
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO PrebuildInfo = {};
         Device->GetRaytracingAccelerationStructurePrebuildInfo(&ASInputs, &PrebuildInfo);
 
-        CreateCommittedBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, PrebuildInfo.ScratchDataSizeInBytes + 5000,
+        CreateCommittedBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, PrebuildInfo.ScratchDataSizeInBytes,
                               TopLevelASScratch,
                               D3D12_RESOURCE_STATE_COMMON,
                               D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -520,49 +524,49 @@ namespace D3D
     {
     }
     
-    void ParseMaterials(const tinygltf::Model* GltfModel, Scene* InScene)
-    {
-        for (int i = 0; i < GltfModel->materials.size(); ++i)
-        {
-            tinygltf::Material GltfMaterial = GltfModel->materials[i];
-            tinygltf::PbrMetallicRoughness Pbr = GltfMaterial.pbrMetallicRoughness;
-            Material Mat;
-            
-            // Name.
-            Mat.Name = GltfMaterial.name;
-            
-            // Albedo and Opacity
-            Mat.Data.BaseColor = {
-                (float)Pbr.baseColorFactor[0],
-                (float)Pbr.baseColorFactor[1],
-                (float)Pbr.baseColorFactor[2] };
-            Mat.Data.Opacity = (float)Pbr.baseColorFactor[3];
-            Mat.Data.BaseColorTexId = Pbr.baseColorTexture.index;
-            
-            // Alpha.
-            Mat.Data.AlphaCutoff = (float)GltfMaterial.alphaCutoff;
-            if (strcmp(GltfMaterial.alphaMode.c_str(), "OPAQUE") == 0) Mat.Data.AlphaMode = ALPHA_MODE_OPAQUE;
-            else if (strcmp(GltfMaterial.alphaMode.c_str(), "BLEND") == 0) Mat.Data.AlphaMode = ALPHA_MODE_BLEND;
-            else if (strcmp(GltfMaterial.alphaMode.c_str(), "MASK") == 0) Mat.Data.AlphaMode = ALPHA_MODE_MASK;
-
-            // Roughness and Metallic.
-            Mat.Data.Roughness = (float)Pbr.roughnessFactor;
-            Mat.Data.Metalness = (float)Pbr.metallicFactor;
-            Mat.Data.RoughnessMetalnessTexId = Pbr.metallicRoughnessTexture.index;
-
-            // Normals.
-            Mat.Data.NormalTexId = GltfMaterial.normalTexture.index;
-            
-            // Emissive.
-            Mat.Data.Emissive = {
-                (float)GltfMaterial.emissiveFactor[0],
-                (float)GltfMaterial.emissiveFactor[1],
-                (float)GltfMaterial.emissiveFactor[2] };
-            Mat.Data.EmissiveTexId = GltfMaterial.emissiveTexture.index;
-
-            InScene->Materials.push_back(Mat);
-        }
-    }
+    // void ParseMaterials(const tinygltf::Model* GltfModel, Scene* InScene)
+    // {
+    //     for (int i = 0; i < GltfModel->materials.size(); ++i)
+    //     {
+    //         tinygltf::Material GltfMaterial = GltfModel->materials[i];
+    //         tinygltf::PbrMetallicRoughness Pbr = GltfMaterial.pbrMetallicRoughness;
+    //         Material Mat;
+    //         
+    //         // Name.
+    //         Mat.Name = GltfMaterial.name;
+    //         
+    //         // Albedo and Opacity
+    //         Mat.Data.BaseColor = {
+    //             (float)Pbr.baseColorFactor[0],
+    //             (float)Pbr.baseColorFactor[1],
+    //             (float)Pbr.baseColorFactor[2] };
+    //         Mat.Data.Opacity = (float)Pbr.baseColorFactor[3];
+    //         Mat.Data.BaseColorTexId = Pbr.baseColorTexture.index;
+    //         
+    //         // Alpha.
+    //         Mat.Data.AlphaCutoff = (float)GltfMaterial.alphaCutoff;
+    //         if (strcmp(GltfMaterial.alphaMode.c_str(), "OPAQUE") == 0) Mat.Data.AlphaMode = ALPHA_MODE_OPAQUE;
+    //         else if (strcmp(GltfMaterial.alphaMode.c_str(), "BLEND") == 0) Mat.Data.AlphaMode = ALPHA_MODE_BLEND;
+    //         else if (strcmp(GltfMaterial.alphaMode.c_str(), "MASK") == 0) Mat.Data.AlphaMode = ALPHA_MODE_MASK;
+    //
+    //         // Roughness and Metallic.
+    //         Mat.Data.Roughness = (float)Pbr.roughnessFactor;
+    //         Mat.Data.Metalness = (float)Pbr.metallicFactor;
+    //         Mat.Data.RoughnessMetalnessTexId = Pbr.metallicRoughnessTexture.index;
+    //
+    //         // Normals.
+    //         Mat.Data.NormalTexId = GltfMaterial.normalTexture.index;
+    //         
+    //         // Emissive.
+    //         Mat.Data.Emissive = {
+    //             (float)GltfMaterial.emissiveFactor[0],
+    //             (float)GltfMaterial.emissiveFactor[1],
+    //             (float)GltfMaterial.emissiveFactor[2] };
+    //         Mat.Data.EmissiveTexId = GltfMaterial.emissiveTexture.index;
+    //
+    //         InScene->Materials.push_back(Mat);
+    //     }
+    // }
     
     void LoadModel(const char* FileName, Scene* InScene)
     {
@@ -582,7 +586,7 @@ namespace D3D
         }
 
         // Parse.
-        ParseMaterials(&GltfModel, InScene);
+        // ParseMaterials(&GltfModel, InScene);
         ParseMeshes(&GltfModel, InScene);
     }
 }
