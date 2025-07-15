@@ -40,7 +40,12 @@ void MSMain(
     if (gtid < NumOutputVertices)
     {
         float4 Position = TriangleVerticesPositions[gtid];
+        Position = mul(Position, Globals.View);
+        OutTriangleVertex[gtid].PositionSS = Position;
+        
+        Position = mul(Position, Globals.ViewProjection);
         OutTriangleVertex[gtid].PositionHS = Position;
+        
         OutTriangleVertex[gtid].Color = float4(Globals.TestColor, 1.f);
         OutTriangleVertex[gtid].Normal = float3(0.f, 0.f, -1.f);
     }
