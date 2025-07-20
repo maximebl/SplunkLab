@@ -18,7 +18,6 @@ void MSExperiments::UpdateAndRender(MSExperimentsData& Data,
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
     XMMATRIX Projection = Data.Camera.GetProjectionMatrix(FieldOfView, AspectRatio);
     XMMATRIX View = Data.Camera.GetViewMatrix();
-    // TODO: Avoid transposes by using a DXC flag to store in column-major? (-Zpc)
     XMStoreFloat4x4(&Data.SceneConstants->View, XMMatrixTranspose(View));
     XMStoreFloat4x4(&Data.SceneConstants->ViewProjection, XMMatrixTranspose(View * Projection));
     Data.SceneConstants->TestColor = XMFLOAT3(0.f, 0.f, abs(XMScalarSinEst(ElapsedSeconds)));
