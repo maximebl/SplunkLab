@@ -178,6 +178,17 @@ namespace D3D
                                UINT64 Size, ID3D12Resource** Buffer,
                                D3D12_RESOURCE_STATES InitialState, D3D12_RESOURCE_FLAGS Flags)
     {
+
+        if (HeapType == D3D12_HEAP_TYPE_GPU_UPLOAD)
+        {
+            D3D12_FEATURE_DATA_D3D12_OPTIONS FeatureSupport{};
+            HRESULT HR = Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS16, &FeatureSupport, sizeof(FeatureSupport));
+            if (FAILED(HR))
+            {
+                HeapType = D3D12_HEAP_TYPE_UPLOAD;         
+            }
+        }
+        
         D3D12_HEAP_PROPERTIES HeapDesc = {};
         HeapDesc.Type = HeapType;
 
