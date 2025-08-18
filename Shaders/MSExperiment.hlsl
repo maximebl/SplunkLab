@@ -41,9 +41,9 @@ void MSMain(
     {
         float4 Position = TriangleVerticesPositions[gtid];
         // Position = mul(Position, Globals.View);
-        OutTriangleVertex[gtid].PositionSS = Position;
+        // OutTriangleVertex[gtid].PositionSS = Position;
         
-        // Position = mul(Position, Globals.ViewProjection);
+        Position = mul(Position, Globals.ViewProjection);
         OutTriangleVertex[gtid].PositionHS = Position;
         
         OutTriangleVertex[gtid].Color = float4(Globals.TestColor, 1.f);

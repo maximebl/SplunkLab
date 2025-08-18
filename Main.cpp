@@ -346,8 +346,8 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                 {
                     if (!IsMSExperimentsInitialized)
                     {
-                        MSEData.Camera.Init({0.f, 5.f, 35.f});
-                        MSEData.Camera.SetMoveSpeed(10.f);
+                        MSEData.Camera.Init({0.f, 0.f, 15.f});
+                        MSEData.Camera.SetMoveSpeed(5.f);
                         
                         // Simple mesh + pixel shader.
                         MSEData.SimpleMS.Filename = L"MSExperiment.hlsl";
