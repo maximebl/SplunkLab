@@ -13,7 +13,7 @@ void MSExperiments::UpdateAndRender(MSExperimentsData& Data,
     float ElapsedSeconds = static_cast<float>(Data.Timer.GetTotalSeconds());
 
     // Camera.
-    // Data.Camera.Update(DeltaTime);
+    Data.Camera.Update(DeltaTime);
     constexpr float FieldOfView = XM_PI / 2.f;
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
     XMMATRIX Projection = Data.Camera.GetProjectionMatrix(FieldOfView, AspectRatio);

@@ -165,11 +165,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         MSExperiments::MSExperimentsData MSEData = {};
         
         do {
-            if (WindowMessage.message == WM_KEYDOWN && CurrentDemo == Demo::MSExperiments)
-            {
-                MSEData.Camera.OnKeyDown(WindowMessage.wParam);
-            }
-            
+            // Key down.
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'N')
             {
                 CurrentDemo = Demo::NvidiaTutorial;
@@ -185,6 +181,17 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
             if (WindowMessage.message == WM_KEYDOWN && WindowMessage.wParam == 'E')
             {
                 CurrentDemo = Demo::MSExperiments;
+            }
+            
+            if (WindowMessage.message == WM_KEYDOWN && CurrentDemo == Demo::MSExperiments)
+            {
+                MSEData.Camera.OnKeyDown(WindowMessage.wParam);
+            }
+            
+            // Key Up.
+            if (WindowMessage.message == WM_KEYUP && CurrentDemo == Demo::MSExperiments)
+            {
+                MSEData.Camera.OnKeyUp(WindowMessage.wParam);
             }
             
             Frame* CurrentFrame = &Data.Frames[BackBufferIndex];
@@ -347,7 +354,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                     if (!IsMSExperimentsInitialized)
                     {
                         MSEData.Camera.Init({0.f, 0.f, 15.f});
-                        MSEData.Camera.SetMoveSpeed(5.f);
+                        MSEData.Camera.SetMoveSpeed(20.f);
                         
                         // Simple mesh + pixel shader.
                         MSEData.SimpleMS.Filename = L"MSExperiment.hlsl";
@@ -390,6 +397,8 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                         SceneConstantsCbvDesc.BufferLocation = MSEData.SceneConstantsBuffer->GetGPUVirtualAddress();
                         SceneConstantsCbvDesc.SizeInBytes = sizeof(Constants);
                         Device->CreateConstantBufferView(&SceneConstantsCbvDesc, MSEData.CSUHeap->GetCPUDescriptorHandleForHeapStart());
+
+                        IsMSExperimentsInitialized = true;
                     }
                     MSExperiments::UpdateAndRender(MSEData, CurrentFrame, CmdList, Window.Width, Window.Height);
                 }
