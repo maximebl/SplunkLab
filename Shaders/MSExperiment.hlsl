@@ -10,50 +10,75 @@ struct TriangleVertex
     float3 Normal : NORMAL0;
 };
 
+// Front is clockwise.
 static float4 TriangleVerticesPositions[] =
 {
-    float4(0.f, 0.f, 0.f, 1.f),// Screen center.
-    float4(0.f, 1.f, 0.f, 1.f),// Screen center-top.
-    float4(1.f, 0.f, 0.f, 1.f) // Screen center-right.
+    float4(0.f, 0.f, 0.f, 1.f), // Screen center.
+    float4(0.f, 1.f, 0.f, 1.f), // Screen center-top.
+    float4(1.f, 0.f, 0.f, 1.f), // Screen center-right.
+    float4(-1.f, 0.f, 0.f, 1.f) // Screen center-left.
 };
 
 static uint3 TriangleIndices[] =
 {
-    uint3(0,1,2)
+    uint3(0,1,2), // Triangle 0.
+    uint3(0,3,1)  // Triangle 1.
 };
 
 // One triangle with one outlined edge.
-[outputtopology("triangle")]
-[numthreads(3, 1, 1)] 
+[outputtopology("triangle")] // Primitive to output.
+[numthreads(4, 1, 1)] 
 void MSMain(
     uint gtid : SV_GroupThreadID,
-    out vertices TriangleVertex OutTriangleVertex[3],
-    out indices uint3 OutTriangleIndices[1]
+    out vertices TriangleVertex OutTriangleVertex[4],
+    out indices uint3 OutTriangleIndices[2]
     )
 {
     ConstantBuffer<Constants> Globals = ResourceDescriptorHeap[0];
     
-    uint NumOutputVertices = 3;
-    uint NumOutputPrimitives = 1; 
-    SetMeshOutputCounts(NumOutputVertices, NumOutputPrimitives);
+    uint NumOutputVertices = 4;
+    uint NumOutputTriangles = 2; 
+    SetMeshOutputCounts(NumOutputVertices, NumOutputTriangles);
 
     if (gtid < NumOutputVertices)
     {
+        // Position.
         float4 Position = TriangleVerticesPositions[gtid];
         // Position = mul(Position, Globals.View);
         // OutTriangleVertex[gtid].PositionSS = Position;
-        
         Position = mul(Position, Globals.ViewProjection);
         OutTriangleVertex[gtid].PositionHS = Position;
-        
+
+        // Color
         OutTriangleVertex[gtid].Color = float4(Globals.TestColor, 1.f);
-        OutTriangleVertex[gtid].Normal = float3(0.f, 0.f, -1.f);
+
+        // Normals.
+        // float3 SummedNormals = 0;
+        float3 TriNormal = 0;
+        [unroll]
+        for (int tri = 0; tri < NumOutputTriangles; tri++)
+        {
+            uint3 TriId = TriangleIndices[tri];
+            // Does the current id belong to this triangle?
+            if (any(gtid == TriId))
+            {
+                // Get the three vertex positions of this triangle.
+                float3 vp0 = TriangleVerticesPositions[TriId.x].xyz;
+                float3 vp1 = TriangleVerticesPositions[TriId.y].xyz;
+                float3 vp2 = TriangleVerticesPositions[TriId.z].xyz;
+                TriNormal = normalize(cross(vp1 - vp0, vp2 - vp0));
+                // SummedNormals += TriNormal;
+            }
+        }
+        // float3 SmoothNormal = normalize(SummedNormals);
+        OutTriangleVertex[gtid].Normal = TriNormal;
     }
 
-    OutTriangleIndices[gtid] = TriangleIndices[gtid];
+    // Assign indices.
+    OutTriangleIndices = TriangleIndices;
 }
 
 float4 PSMain(TriangleVertex In) : SV_Target
 {
-    return In.Color;
+    return float4(abs(In.Normal), 1.f); 
 }

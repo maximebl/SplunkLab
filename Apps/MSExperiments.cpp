@@ -21,6 +21,8 @@ void MSExperiments::UpdateAndRender(MSExperimentsData& Data,
     XMMATRIX World = XMMatrixIdentity();
     XMStoreFloat4x4(&Data.SceneConstants->View, XMMatrixTranspose(View));
     XMStoreFloat4x4(&Data.SceneConstants->ViewProjection, XMMatrixTranspose(World * View * Projection));
+
+    // Color.
     Data.SceneConstants->TestColor = XMFLOAT3(0.f, 0.f, abs(XMScalarSinEst(ElapsedSeconds)));
     
     // Render.
