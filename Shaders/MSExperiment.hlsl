@@ -15,8 +15,8 @@ static float4 TriangleVerticesPositions[] =
 {
     float4(0.f, 0.f, 0.f, 1.f), // Screen center.
     float4(0.f, 1.f, 0.f, 1.f), // Screen center-top.
-    float4(1.f, 0.f, 0.f, 1.f), // Screen center-right.
-    float4(-1.f, 0.f, 0.f, 1.f) // Screen center-left.
+    float4(1.f, 0.f, -1.f, 1.f), // Screen center-right.
+    float4(-1.f, 0.f,-1.f, 1.f) // Screen center-left.
 };
 
 static uint3 TriangleIndices[] =
@@ -46,7 +46,8 @@ void MSMain(
         float4 Position = TriangleVerticesPositions[gtid];
         // Position = mul(Position, Globals.View);
         // OutTriangleVertex[gtid].PositionSS = Position;
-        Position = mul(Position, Globals.ViewProjection);
+        matrix MVP = mul(Globals.Model, Globals.ViewProjection);
+        Position = mul(Position, MVP);
         OutTriangleVertex[gtid].PositionHS = Position;
 
         // Color
@@ -63,10 +64,10 @@ void MSMain(
             if (any(gtid == TriId))
             {
                 // Get the three vertex positions of this triangle.
-                float3 vp0 = TriangleVerticesPositions[TriId.x].xyz;
-                float3 vp1 = TriangleVerticesPositions[TriId.y].xyz;
-                float3 vp2 = TriangleVerticesPositions[TriId.z].xyz;
-                TriNormal = normalize(cross(vp1 - vp0, vp2 - vp0));
+                float3 vp0 = mul(TriangleVerticesPositions[TriId.x], Globals.Model).xyz;
+                float3 vp1 = mul(TriangleVerticesPositions[TriId.y], Globals.Model).xyz;
+                float3 vp2 = mul(TriangleVerticesPositions[TriId.z], Globals.Model).xyz;
+                TriNormal = normalize(cross(vp2 - vp0, vp1 - vp0));
                 // SummedNormals += TriNormal;
             }
         }
@@ -80,5 +81,5 @@ void MSMain(
 
 float4 PSMain(TriangleVertex In) : SV_Target
 {
-    return float4(abs(In.Normal), 1.f); 
+    return float4(In.Normal, 1.f); 
 }

@@ -16,14 +16,18 @@ void MSExperiments::UpdateAndRender(MSExperimentsData& Data,
     Data.Camera.Update(DeltaTime);
     constexpr float FieldOfView = XM_PI / 2.f;
     float AspectRatio = static_cast<float>(Width) / static_cast<float>(Height);
+    float SinWave = XMScalarSinEst(ElapsedSeconds);
     XMMATRIX Projection = Data.Camera.GetProjectionMatrix(FieldOfView, AspectRatio);
     XMMATRIX View = Data.Camera.GetViewMatrix();
     XMMATRIX World = XMMatrixIdentity();
+    XMMATRIX XRotation = XMMatrixRotationX(SinWave);
+    XMMATRIX YTranslation = XMMatrixTranslation(0.f, 5.f, 0.f);
     XMStoreFloat4x4(&Data.SceneConstants->View, XMMatrixTranspose(View));
-    XMStoreFloat4x4(&Data.SceneConstants->ViewProjection, XMMatrixTranspose(World * View * Projection));
+    XMStoreFloat4x4(&Data.SceneConstants->ViewProjection, XMMatrixTranspose(View * Projection));
+    XMStoreFloat4x4(&Data.SceneConstants->Model, XMMatrixTranspose(World * XRotation * YTranslation));
 
     // Color.
-    Data.SceneConstants->TestColor = XMFLOAT3(0.f, 0.f, abs(XMScalarSinEst(ElapsedSeconds)));
+    Data.SceneConstants->TestColor = XMFLOAT3(0.f, 0.f, SinWave);
     
     // Render.
     D3D::Transition(CmdList,
