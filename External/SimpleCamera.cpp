@@ -15,40 +15,40 @@
 #include "SimpleCamera.h"
 
 SimpleCamera::SimpleCamera():
-    m_initialPosition(0, 0, 0),
-    m_position(m_initialPosition),
-    m_yaw(XM_PI),
-    m_pitch(0.0f),
-    m_lookDirection(0, 0, -1),
-    m_upDirection(0, 1, 0),
-    m_moveSpeed(20.0f),
-    m_turnSpeed(XM_PIDIV2),
-    m_keysPressed{}
+    InitialPosition(0, 0, 0),
+    Position(InitialPosition),
+    Yaw(XM_PI),
+    Pitch(0.0f),
+    LookDirection(0, 0, -1),
+    UpDirection(0, 1, 0),
+    MoveSpeed(20.0f),
+    TurnSpeed(XM_PIDIV2),
+    KeysPressed{}
 {
 }
 
 void SimpleCamera::Init(XMFLOAT3 position)
 {
-    m_initialPosition = position;
+    InitialPosition = position;
     Reset();
 }
 
 void SimpleCamera::SetMoveSpeed(float unitsPerSecond)
 {
-    m_moveSpeed = unitsPerSecond;
+    MoveSpeed = unitsPerSecond;
 }
 
 void SimpleCamera::SetTurnSpeed(float radiansPerSecond)
 {
-    m_turnSpeed = radiansPerSecond;
+    TurnSpeed = radiansPerSecond;
 }
 
 void SimpleCamera::Reset()
 {
-    m_position = m_initialPosition;
-    m_yaw = XM_PI;
-    m_pitch = 0.0f;
-    m_lookDirection = { 0, 0, -1 };
+    Position = InitialPosition;
+    Yaw = XM_PI;
+    Pitch = 0.0f;
+    LookDirection = { 0, 0, -1 };
 }
 
 void SimpleCamera::Update(float elapsedSeconds)
@@ -56,13 +56,13 @@ void SimpleCamera::Update(float elapsedSeconds)
     // Calculate the move vector in camera space.
     XMFLOAT3 move(0, 0, 0);
 
-    if (m_keysPressed.a)
+    if (KeysPressed.a)
         move.x -= 1.0f;
-    if (m_keysPressed.d)
+    if (KeysPressed.d)
         move.x += 1.0f;
-    if (m_keysPressed.w)
+    if (KeysPressed.w)
         move.z -= 1.0f;
-    if (m_keysPressed.s)
+    if (KeysPressed.s)
         move.z += 1.0f;
 
     if (fabs(move.x) > 0.1f && fabs(move.z) > 0.1f)
@@ -72,38 +72,38 @@ void SimpleCamera::Update(float elapsedSeconds)
         move.z = XMVectorGetZ(vector);
     }
 
-    float moveInterval = m_moveSpeed * elapsedSeconds;
-    float rotateInterval = m_turnSpeed * elapsedSeconds;
+    float moveInterval = MoveSpeed * elapsedSeconds;
+    float rotateInterval = TurnSpeed * elapsedSeconds;
 
-    if (m_keysPressed.left)
-        m_yaw += rotateInterval;
-    if (m_keysPressed.right)
-        m_yaw -= rotateInterval;
-    if (m_keysPressed.up)
-        m_pitch += rotateInterval;
-    if (m_keysPressed.down)
-        m_pitch -= rotateInterval;
+    if (KeysPressed.left)
+        Yaw += rotateInterval;
+    if (KeysPressed.right)
+        Yaw -= rotateInterval;
+    if (KeysPressed.up)
+        Pitch += rotateInterval;
+    if (KeysPressed.down)
+        Pitch -= rotateInterval;
 
     // Prevent looking too far up or down.
-    m_pitch = min(m_pitch, XM_PIDIV4);
-    m_pitch = max(-XM_PIDIV4, m_pitch);
+    Pitch = min(Pitch, XM_PIDIV4);
+    Pitch = max(-XM_PIDIV4, Pitch);
 
     // Move the camera in model space.
-    float x = move.x * -cosf(m_yaw) - move.z * sinf(m_yaw);
-    float z = move.x * sinf(m_yaw) - move.z * cosf(m_yaw);
-    m_position.x += x * moveInterval;
-    m_position.z += z * moveInterval;
+    float x = move.x * -cosf(Yaw) - move.z * sinf(Yaw);
+    float z = move.x * sinf(Yaw) - move.z * cosf(Yaw);
+    Position.x += x * moveInterval;
+    Position.z += z * moveInterval;
 
     // Determine the look direction.
-    float r = cosf(m_pitch);
-    m_lookDirection.x = r * sinf(m_yaw);
-    m_lookDirection.y = sinf(m_pitch);
-    m_lookDirection.z = r * cosf(m_yaw);
+    float r = cosf(Pitch);
+    LookDirection.x = r * sinf(Yaw);
+    LookDirection.y = sinf(Pitch);
+    LookDirection.z = r * cosf(Yaw);
 }
 
 XMMATRIX SimpleCamera::GetViewMatrix()
 {
-    return XMMatrixLookToRH(XMLoadFloat3(&m_position), XMLoadFloat3(&m_lookDirection), XMLoadFloat3(&m_upDirection));
+    return XMMatrixLookToRH(XMLoadFloat3(&Position), XMLoadFloat3(&LookDirection), XMLoadFloat3(&UpDirection));
 }
 
 XMMATRIX SimpleCamera::GetProjectionMatrix(float fov, float aspectRatio, float nearPlane, float farPlane)
@@ -116,28 +116,28 @@ void SimpleCamera::OnKeyDown(WPARAM key)
     switch (key)
     {
     case 'W':
-        m_keysPressed.w = true;
+        KeysPressed.w = true;
         break;
     case 'A':
-        m_keysPressed.a = true;
+        KeysPressed.a = true;
         break;
     case 'S':
-        m_keysPressed.s = true;
+        KeysPressed.s = true;
         break;
     case 'D':
-        m_keysPressed.d = true;
+        KeysPressed.d = true;
         break;
     case VK_LEFT:
-        m_keysPressed.left = true;
+        KeysPressed.left = true;
         break;
     case VK_RIGHT:
-        m_keysPressed.right = true;
+        KeysPressed.right = true;
         break;
     case VK_UP:
-        m_keysPressed.up = true;
+        KeysPressed.up = true;
         break;
     case VK_DOWN:
-        m_keysPressed.down = true;
+        KeysPressed.down = true;
         break;
     case VK_ESCAPE:
         Reset();
@@ -150,28 +150,28 @@ void SimpleCamera::OnKeyUp(WPARAM key)
     switch (key)
     {
     case 'W':
-        m_keysPressed.w = false;
+        KeysPressed.w = false;
         break;
     case 'A':
-        m_keysPressed.a = false;
+        KeysPressed.a = false;
         break;
     case 'S':
-        m_keysPressed.s = false;
+        KeysPressed.s = false;
         break;
     case 'D':
-        m_keysPressed.d = false;
+        KeysPressed.d = false;
         break;
     case VK_LEFT:
-        m_keysPressed.left = false;
+        KeysPressed.left = false;
         break;
     case VK_RIGHT:
-        m_keysPressed.right = false;
+        KeysPressed.right = false;
         break;
     case VK_UP:
-        m_keysPressed.up = false;
+        KeysPressed.up = false;
         break;
     case VK_DOWN:
-        m_keysPressed.down = false;
+        KeysPressed.down = false;
         break;
     }
 }

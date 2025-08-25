@@ -34,7 +34,9 @@ _declspec(align(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT))
 struct Constants
 {
 	float3 TestColor;
-	float _padding;
+	float _padding0;
+	float3 CameraPosition;
+	float _padding1;
 	float4x4 Model;
 	float4x4 View;
 	float4x4 ViewProjection;

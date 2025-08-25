@@ -376,6 +376,7 @@ namespace D3D
         MSPSDesc.RTVFormats[0] = BackBufferFormat;
         MSPSDesc.DSVFormat = DepthBufferFormat;
         MSPSDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        MSPSDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; 
         MSPSDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         MSPSDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         MSPSDesc.SampleDesc = DefaultSampleDesc();

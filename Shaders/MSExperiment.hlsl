@@ -44,8 +44,8 @@ void MSMain(
     {
         // Position.
         float4 Position = TriangleVerticesPositions[gtid];
-        // Position = mul(Position, Globals.View);
-        // OutTriangleVertex[gtid].PositionSS = Position;
+        float4 WSPosition = mul(Position, Globals.Model);
+        // OutTriangleVertex[gtid].PositionSS = ViewSpacePosition;
         matrix MVP = mul(Globals.Model, Globals.ViewProjection);
         Position = mul(Position, MVP);
         OutTriangleVertex[gtid].PositionHS = Position;
@@ -73,6 +73,19 @@ void MSMain(
         }
         // float3 SmoothNormal = normalize(SummedNormals);
         OutTriangleVertex[gtid].Normal = TriNormal;
+
+        // float3 VertexToView = normalize(mul(float4(Globals.CameraPosition, 1.f), Globals.ViewProjection).xyz - Position.xyz);
+        float3 VertexToView = normalize(Globals.CameraPosition.xyz - WSPosition.xyz);
+        float NoV = dot(TriNormal, VertexToView);
+        [branch] 
+        if (NoV > 0) // Front facing.
+        {
+            OutTriangleVertex[gtid].Color = float4(0.f, 1.f, 0.f, 1.f);
+        }
+        else // Back facing.
+        {
+            OutTriangleVertex[gtid].Color = float4(1.f, 0.f, 0.f, 1.f);
+        }
     }
 
     // Assign indices.
@@ -81,5 +94,5 @@ void MSMain(
 
 float4 PSMain(TriangleVertex In) : SV_Target
 {
-    return float4(In.Normal, 1.f); 
+    return float4(In.Color.rgb, 1.f); 
 }
